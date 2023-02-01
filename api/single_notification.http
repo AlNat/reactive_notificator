@@ -1,14 +1,17 @@
+POST http://localhost:80/api/notification/test1?ttl=600
+
+data_value
+
+###
+
 POST http://localhost:80/api/notification/test2
 
 {some_date}
 
-
 ###
-
 
 GET http://localhost:80/api/notification/test2
 
 ###
-
 
 GET http://localhost:80/api/notification/test1

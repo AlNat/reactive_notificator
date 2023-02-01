@@ -1,6 +1,5 @@
 package dev.alnat.reactivenotificator.service;
 
-import dev.alnat.reactivenotificator.model.SingleNotification;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +8,7 @@ import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.Optional;
 
 /**
@@ -21,9 +21,9 @@ import java.util.Optional;
 public class RedisBackendNotificationService implements SingleNotificationService {
 
     @Value("${custom.default-notification-ttl}")
-    private Long defaultTTL;
+    private Duration defaultTTL;
 
-    private final ReactiveRedisTemplate<String, SingleNotification> reactiveRedisTemplate;
+    private final ReactiveRedisTemplate<String, String> reactiveRedisTemplate;
     private final MeterRegistry registry;
 
     @Override
@@ -31,10 +31,12 @@ public class RedisBackendNotificationService implements SingleNotificationServic
                                          final Optional<String> ttl,
                                          final Mono<String> body) {
         return body
-                .map(b -> new SingleNotification(key, b, ttl.map(Long::valueOf).orElse(defaultTTL)))
-                .doOnNext(n -> registry.counter("NEW_SAVES").increment())
                 .flatMap(notification -> reactiveRedisTemplate.opsForSet().add(key, notification))
-                .map(String::valueOf)
+                .flatMap(c -> reactiveRedisTemplate.expire(key,
+                        ttl.map(t -> Duration.ofSeconds(Long.parseLong(t))).orElse(defaultTTL)
+                ))
+                .doOnNext(n -> registry.counter("NEW_SAVES").increment())
+                .flatMap(m -> Mono.<String>empty())
                 .log()
                 .doOnError(e -> log.error("", e));
     }
@@ -43,9 +45,8 @@ public class RedisBackendNotificationService implements SingleNotificationServic
     public Mono<String> getNotification(final String key) {
         return reactiveRedisTemplate.opsForSet()
                 .pop(key)
-                .doOnNext(n -> registry.counter("GET").increment())
-                .map(SingleNotification::getValue)
                 .log()
+                .doOnNext(n -> registry.counter("GET").increment())
                 .doOnError(e -> log.error("", e));
     }
 

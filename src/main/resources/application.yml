@@ -41,4 +41,4 @@ springdoc:
     enabled: ${ENABLE_SWAGGER:true}
 
 custom:
-  default-notification-ttl: ${DEFAULT_TTL_IN_SEC:6400}
+  default-notification-ttl: ${DEFAULT_TTL:P1D}
