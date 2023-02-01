@@ -1,0 +1,14 @@
+POST http://localhost:80/api/notification/test2
+
+{some_date}
+
+
+###
+
+
+GET http://localhost:80/api/notification/test2
+
+###
+
+
+GET http://localhost:80/api/notification/test1
