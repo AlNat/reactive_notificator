@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -18,7 +19,7 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class RedisBackendNotificationService implements SingleNotificationService {
+public class RedisBackendNotificationService implements SingleNotificationService, QueueNotificationService {
 
     @Value("${custom.default-notification-ttl}")
     private Duration defaultTTL;
@@ -50,4 +51,24 @@ public class RedisBackendNotificationService implements SingleNotificationServic
                 .doOnError(e -> log.error("", e));
     }
 
+    @Override
+    public Mono<String> saveNotificationQueue(final String queueName,
+                                              final Mono<String> body) {
+        return body
+                .flatMap(notification -> reactiveRedisTemplate.opsForList().leftPush(queueName, notification))
+                .doOnNext(n -> registry.counter("NEW_SAVES_QUEUE").increment())
+                .flatMap(m -> Mono.<String>empty())
+                .log()
+                .doOnError(e -> log.error("", e));
+    }
+
+    @Override
+    public Flux<String> getNotificationQueue(final String queueName,
+                                             final Integer count) {
+        return Flux.range(0, count)
+                .concatMap(m -> reactiveRedisTemplate.opsForList().rightPop(queueName), count)
+                .map(s -> s + "\n") // line break
+                .doOnNext(n -> registry.counter("GET").increment())
+                .doOnError(e -> log.error("", e));
+    }
 }

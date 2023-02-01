@@ -1,0 +1,13 @@
+POST http://localhost:80/api/queue/q
+
+data_value
+
+###
+
+POST http://localhost:80/api/queue/q
+
+data_value_11111
+
+###
+
+GET http://localhost:80/api/queue/q?count=3
