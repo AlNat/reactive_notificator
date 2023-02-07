@@ -10,3 +10,4 @@ Simple app for create and pull notifications in reactive style with Redis backen
 * Support pull receive method
 * Can configure TTL of the notification
 * Expose metrics with Micrometer
+* Swagger API specs (/webjars/swagger-ui/index.html)
